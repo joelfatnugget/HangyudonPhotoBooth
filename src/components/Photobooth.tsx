@@ -1,10 +1,15 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Camera, Volume2, VolumeX, Sparkles, Download, RotateCcw, FlipHorizontal, Heart } from 'lucide-react';
+import { Camera, Volume2, VolumeX, Sparkles, Download, RotateCcw, FlipHorizontal, Heart, Smile } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { BubbleEngine, Bubble } from '../services/bubbleEngine';
 import { SoundSynthesizer } from '../services/soundSynthesizer';
 import { TimerManager } from '../services/timerManager';
 import { StickerManager, StickerType } from '../services/stickerManager';
+import {
+  FaceTrackerEngine,
+  DetectedFace,
+  HangyudonFaceFilter,
+} from '../services/faceTrackerEngine';
 import {
   PhotoStripCompositor,
   FRAME_THEMES,
@@ -13,6 +18,7 @@ import {
 } from '../services/photoStripCompositor';
 import { InteractiveBackground } from './InteractiveBackground';
 import { StickerOverlay } from './StickerOverlay';
+import { FaceFilterOverlay } from './FaceFilterOverlay';
 import {
   HangyudonCharacter,
   SayuriOctopus,
@@ -31,6 +37,12 @@ export const Photobooth: React.FC = () => {
   const soundSynthRef = useRef<SoundSynthesizer>(new SoundSynthesizer());
   const stickerManagerRef = useRef<StickerManager>(new StickerManager());
   const compositorRef = useRef<PhotoStripCompositor>(new PhotoStripCompositor());
+  const faceTrackerRef = useRef<FaceTrackerEngine>(new FaceTrackerEngine({ smoothingAlpha: 0.35 }));
+
+  // Face Filter State
+  const [activeFaceFilter, setActiveFaceFilter] = useState<HangyudonFaceFilter>('hood_headband');
+  const [detectedFace, setDetectedFace] = useState<DetectedFace | null>(null);
+  const [isFaceDetected, setIsFaceDetected] = useState<boolean>(false);
 
   // Camera & Stream State
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -79,6 +91,59 @@ export const Photobooth: React.FC = () => {
       }).catch(() => {});
     }
   }, [selectedDeviceId]);
+
+  // Real-time Face Tracking Loop
+  useEffect(() => {
+    let animId: number;
+    let isCancelled = false;
+    let lastDetectTime = 0;
+
+    const trackLoop = async (timestamp: number) => {
+      if (isCancelled) return;
+
+      if (timestamp - lastDetectTime >= 60) {
+        lastDetectTime = timestamp;
+
+        if (streamActive && videoRef.current && videoRef.current.readyState >= 2) {
+          try {
+            const raw = await faceTrackerRef.current.detectFromVideoOrCanvas(videoRef.current);
+            const smoothed = faceTrackerRef.current.processFrame(raw, detectedFace);
+            if (smoothed) {
+              setDetectedFace(smoothed);
+              setIsFaceDetected(true);
+            } else {
+              setDetectedFace(null);
+              setIsFaceDetected(false);
+            }
+          } catch {
+            // Frame detection error handled gracefully
+          }
+        } else if (!streamActive && activeFaceFilter !== 'none') {
+          const time = timestamp * 0.002;
+          const mock: DetectedFace = {
+            x: 250,
+            y: 165 + Math.sin(time) * 8,
+            width: 140,
+            height: 160,
+            rollAngle: Math.sin(time * 0.7) * 3,
+          };
+          setDetectedFace(mock);
+          setIsFaceDetected(true);
+        } else {
+          setDetectedFace(null);
+          setIsFaceDetected(false);
+        }
+      }
+
+      animId = requestAnimationFrame(trackLoop);
+    };
+
+    animId = requestAnimationFrame(trackLoop);
+    return () => {
+      isCancelled = true;
+      cancelAnimationFrame(animId);
+    };
+  }, [streamActive, activeFaceFilter, detectedFace]);
 
   // Start Camera Stream
   const startCamera = async (deviceId?: string) => {
@@ -131,6 +196,105 @@ export const Photobooth: React.FC = () => {
     };
   }, []);
 
+  // Draw active Hangyudon face filter onto canvas for export
+  const drawFaceFilterToCanvas = (
+    ctx: CanvasRenderingContext2D,
+    face: DetectedFace,
+    filter: HangyudonFaceFilter
+  ) => {
+    if (filter === 'none') return;
+    const tracker = faceTrackerRef.current;
+    ctx.save();
+
+    if (filter === 'hood_headband') {
+      const anchor = tracker.calculateAnchor(face, 'headTop');
+      ctx.translate(anchor.x, anchor.y);
+      ctx.rotate((anchor.rotation * Math.PI) / 180);
+      ctx.strokeStyle = '#4ecdc4';
+      ctx.lineWidth = anchor.width * 0.12;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.arc(0, 15, anchor.width * 0.42, Math.PI, 0, false);
+      ctx.stroke();
+
+      ctx.fillStyle = '#38b2ac';
+      ctx.beginPath();
+      ctx.ellipse(0, -anchor.width * 0.38, anchor.width * 0.12, anchor.width * 0.22, 0, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (filter === 'wavy_lips') {
+      const anchor = tracker.calculateAnchor(face, 'mouth');
+      ctx.translate(anchor.x, anchor.y);
+      ctx.rotate((anchor.rotation * Math.PI) / 180);
+      ctx.fillStyle = '#ff8fab';
+      ctx.strokeStyle = '#1e3a5f';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, anchor.width * 0.5, anchor.width * 0.22, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    } else if (filter === 'big_eyes') {
+      const anchor = tracker.calculateAnchor(face, 'eyes');
+      ctx.translate(anchor.x, anchor.y);
+      ctx.rotate((anchor.rotation * Math.PI) / 180);
+      const eyeR = anchor.width * 0.18;
+      const eyeSpacing = anchor.width * 0.32;
+      [-eyeSpacing, eyeSpacing].forEach((xOff) => {
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = '#1e3a5f';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(xOff, 0, eyeR, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#1e3a5f';
+        ctx.beginPath();
+        ctx.arc(xOff + 1, 0, eyeR * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(xOff + 3, -eyeR * 0.2, eyeR * 0.2, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    } else if (filter === 'sayuri_head') {
+      const anchor = tracker.calculateAnchor(face, 'headTop');
+      ctx.translate(anchor.x, anchor.y - anchor.height * 0.5);
+      ctx.fillStyle = '#fb7185';
+      ctx.strokeStyle = '#1e3a5f';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(0, 0, anchor.width * 0.25, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    } else if (filter === 'full_mask') {
+      const anchor = tracker.calculateAnchor(face, 'faceCenter');
+      ctx.translate(anchor.x, anchor.y);
+      ctx.rotate((anchor.rotation * Math.PI) / 180);
+      ctx.fillStyle = '#4ecdc4';
+      ctx.strokeStyle = '#1e3a5f';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, anchor.width * 0.48, anchor.height * 0.48, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#ff8fab';
+      ctx.beginPath();
+      ctx.ellipse(0, 0, anchor.width * 0.18, anchor.height * 0.08, 0, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (filter === 'ramen_feeder') {
+      const anchor = tracker.calculateAnchor(face, 'chin');
+      ctx.translate(anchor.x, anchor.y);
+      ctx.fillStyle = '#ef4444';
+      ctx.strokeStyle = '#1e3a5f';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(0, 0, anchor.width * 0.35, 0, Math.PI);
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  };
+
   // Capture single frame from live video or mock canvas
   const captureFrame = useCallback((): string => {
     const video = videoRef.current;
@@ -150,7 +314,6 @@ export const Photobooth: React.FC = () => {
         ctx.setTransform(1, 0, 0, 1, 0, 0);
       }
     } else {
-      // Mock camera fallback background
       const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
       grad.addColorStop(0, '#bae6fd');
       grad.addColorStop(1, '#a7f3d0');
@@ -175,8 +338,13 @@ export const Photobooth: React.FC = () => {
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
+    // Draw tracked face filter if active
+    if (activeFaceFilter !== 'none' && detectedFace) {
+      drawFaceFilterToCanvas(ctx, detectedFace, activeFaceFilter);
+    }
+
     return canvas.toDataURL('image/jpeg', 0.95);
-  }, [streamActive, isMirrored, filterMode]);
+  }, [streamActive, isMirrored, filterMode, activeFaceFilter, detectedFace]);
 
   // Start Photobooth Countdown Sequence
   const startCountdown = () => {
@@ -405,12 +573,33 @@ export const Photobooth: React.FC = () => {
               interactiveMode={!isCountingDown}
             />
 
+            {/* Hangyudon Face Filter Overlay */}
+            <FaceFilterOverlay
+              face={detectedFace}
+              filter={activeFaceFilter}
+              tracker={faceTrackerRef.current}
+            />
+
             {/* Draggable Stickers Overlay */}
             <StickerOverlay
               manager={stickerManagerRef.current}
               onUpdate={triggerStickerUpdate}
               interactive={!isCountingDown}
             />
+
+            {/* Face Tracking Indicator Badge */}
+            {activeFaceFilter !== 'none' && (
+              <div className="absolute top-3 right-3 z-20 pointer-events-none flex items-center gap-1.5 bg-slate-900/80 backdrop-blur-md px-3 py-1 rounded-full text-[11px] border border-teal-800/40">
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    isFaceDetected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'
+                  }`}
+                />
+                <span className="text-teal-200">
+                  {isFaceDetected ? 'Face Tracked' : 'Searching Face...'}
+                </span>
+              </div>
+            )}
 
             {/* Shutter White Flash Animation */}
             {flashActive && (
@@ -566,6 +755,44 @@ export const Photobooth: React.FC = () => {
                   }`}
                 >
                   {sec}s
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Hangyudon Face AR Filter Selection */}
+          <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-4">
+            <h4 className="text-xs uppercase tracking-wider text-rose-300 font-bold mb-2 flex items-center gap-1.5">
+              <Smile className="w-3.5 h-3.5" /> Hangyudon Face Filters
+            </h4>
+            <p className="text-[11px] text-slate-400 mb-3">
+              Tracks your face in real-time. Pick a cute prop to wear!
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { id: 'hood_headband', name: 'Headband', desc: 'Dorsal fin' },
+                { id: 'full_mask', name: 'Full Face Mask', desc: 'Full Hangyudon' },
+                { id: 'sayuri_head', name: 'Sayuri on Head', desc: 'Octopus pal' },
+                { id: 'wavy_lips', name: 'Wavy Lips', desc: 'Iconic mouth' },
+                { id: 'big_eyes', name: 'Big Fish Eyes', desc: 'Eyes & blush' },
+                { id: 'ramen_feeder', name: 'Ramen Bowl', desc: 'Chomping noodles' },
+                { id: 'none', name: 'No Face Filter', desc: 'Natural face' },
+              ].map((f) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => {
+                    setActiveFaceFilter(f.id as HangyudonFaceFilter);
+                    soundSynthRef.current.playBubblePop();
+                  }}
+                  className={`py-2 px-2.5 text-xs font-semibold rounded-xl border text-left transition-all flex flex-col gap-0.5 ${
+                    activeFaceFilter === f.id
+                      ? 'bg-teal-500/20 border-teal-400 text-teal-200 ring-1 ring-teal-400 shadow-md'
+                      : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:border-slate-600'
+                  } ${f.id === 'none' ? 'col-span-2 text-center' : ''}`}
+                >
+                  <span className="font-bold text-xs">{f.name}</span>
+                  <span className="text-[10px] text-slate-400">{f.desc}</span>
                 </button>
               ))}
             </div>

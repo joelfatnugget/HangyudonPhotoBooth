@@ -73,4 +73,19 @@ describe('Photobooth', () => {
     });
     expect(screen.getByTitle(/Unmute Sound/i)).toBeInTheDocument();
   });
+
+  it('allows selecting a Hangyudon face filter', async () => {
+    await act(async () => {
+      render(<Photobooth />);
+    });
+
+    const fullMaskBtn = screen.getByRole('button', { name: /Full Face Mask/i });
+    expect(fullMaskBtn).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(fullMaskBtn);
+    });
+
+    expect(fullMaskBtn).toHaveClass('border-teal-400');
+  });
 });
