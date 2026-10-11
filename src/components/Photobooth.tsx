@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Camera, Volume2, VolumeX, Sparkles, Download, RotateCcw, FlipHorizontal, Heart, Smile } from 'lucide-react';
+import { Camera, Volume2, VolumeX, Sparkles, Download, RotateCcw, Heart, Smile } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { BubbleEngine, Bubble } from '../services/bubbleEngine';
 import { SoundSynthesizer } from '../services/soundSynthesizer';
@@ -19,7 +19,6 @@ import {
 import { FrameCompositor } from '../services/frameCompositor';
 import { InteractiveBackground } from './InteractiveBackground';
 import { StickerOverlay } from './StickerOverlay';
-import { FaceFilterOverlay } from './FaceFilterOverlay';
 import {
   HangyudonCharacter,
   SayuriOctopus,
@@ -43,15 +42,14 @@ export const Photobooth: React.FC = () => {
   const bgCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Face Filter State
-  const [activeFaceFilter, setActiveFaceFilter] = useState<HangyudonFaceFilter>('hood_headband');
+  const [activeFaceFilter, setActiveFaceFilter] = useState<HangyudonFaceFilter>('none');
   const [detectedFace, setDetectedFace] = useState<DetectedFace | null>(null);
-  const [isFaceDetected, setIsFaceDetected] = useState<boolean>(false);
+  const [, setIsFaceDetected] = useState<boolean>(false);
 
   // Camera & Stream State
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [streamActive, setStreamActive] = useState<boolean>(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
-  const [isMirrored, setIsMirrored] = useState<boolean>(true);
   const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
 
@@ -61,7 +59,7 @@ export const Photobooth: React.FC = () => {
   const [filterMode, setFilterMode] = useState<FilterMode>('ocean');
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [poppedCount, setPoppedCount] = useState<number>(0);
-  const [bubblesActive, setBubblesActive] = useState<boolean>(true);
+  const [bubblesActive, setBubblesActive] = useState<boolean>(false);
 
   // Stage measurement for accurate AR accessory projection
   const stageContainerRef = useRef<HTMLDivElement | null>(null);
@@ -221,7 +219,7 @@ export const Photobooth: React.FC = () => {
       targetCanvas: canvas,
       video: videoRef.current,
       streamActive,
-      isMirrored,
+      isMirrored: false,
       backgroundCanvas: bubblesActive ? bgCanvasRef.current : null,
       face: detectedFace,
       faceFilter: activeFaceFilter,
@@ -231,7 +229,7 @@ export const Photobooth: React.FC = () => {
     });
 
     return canvas.toDataURL('image/jpeg', 0.95);
-  }, [streamActive, bubblesActive, isMirrored, filterMode, activeFaceFilter, detectedFace]);
+  }, [streamActive, bubblesActive, filterMode, activeFaceFilter, detectedFace]);
 
   // Start Photobooth Countdown Sequence
   const startCountdown = () => {
@@ -315,6 +313,41 @@ export const Photobooth: React.FC = () => {
       x: 320 + (Math.random() - 0.5) * 80,
       y: 240 + (Math.random() - 0.5) * 80,
     });
+    triggerStickerUpdate();
+    soundSynthRef.current.playBubblePop();
+  };
+
+  // Select Wearable Prop (headband, Sayuri, beret, blush, corner mascots)
+  const selectWearableProp = (filterId: HangyudonFaceFilter) => {
+    setActiveFaceFilter(filterId);
+
+    // Remove any previous wearable prop from stickers to avoid duplicate clutter
+    const wearableTypes: StickerType[] = [
+      'hangyudon_hood',
+      'sayuri_head',
+      'sailor_beret',
+      'blush_sparkles',
+      'corner_buddies',
+    ];
+    const existing = stickerManagerRef.current.getStickers();
+    existing.forEach((st) => {
+      if (wearableTypes.includes(st.type)) {
+        stickerManagerRef.current.removeSticker(st.id);
+      }
+    });
+
+    if (filterId === 'hood_headband') {
+      stickerManagerRef.current.addSticker('hangyudon_hood', { x: 320, y: 110 });
+    } else if (filterId === 'sayuri_head') {
+      stickerManagerRef.current.addSticker('sayuri_head', { x: 335, y: 95 });
+    } else if (filterId === 'sailor_beret') {
+      stickerManagerRef.current.addSticker('sailor_beret', { x: 325, y: 105 });
+    } else if (filterId === 'blush_sparkles') {
+      stickerManagerRef.current.addSticker('blush_sparkles', { x: 320, y: 230 });
+    } else if (filterId === 'corner_buddies') {
+      stickerManagerRef.current.addSticker('corner_buddies', { x: 320, y: 240 });
+    }
+
     triggerStickerUpdate();
     soundSynthRef.current.playBubblePop();
   };
@@ -417,8 +450,8 @@ export const Photobooth: React.FC = () => {
               playsInline
               muted
               className={`w-full h-full object-cover transition-transform duration-200 ${
-                isMirrored ? '-scale-x-100' : ''
-              } ${streamActive ? 'block' : 'hidden'}`}
+                streamActive ? 'block' : 'hidden'
+              }`}
             />
 
             {/* Mock / Fallback Camera Stage when webcam is not started */}
@@ -468,40 +501,12 @@ export const Photobooth: React.FC = () => {
               />
             )}
 
-            {/* Hangyudon Face Filter Overlay - Only when camera stream is active */}
-            {streamActive && (
-              <FaceFilterOverlay
-                face={detectedFace}
-                filter={activeFaceFilter}
-                tracker={faceTrackerRef.current}
-                containerWidth={stageSize.width}
-                containerHeight={stageSize.height}
-                videoWidth={videoRef.current?.videoWidth || 640}
-                videoHeight={videoRef.current?.videoHeight || 480}
-                isMirrored={isMirrored}
-              />
-            )}
-
             {/* Draggable Stickers Overlay */}
             <StickerOverlay
               manager={stickerManagerRef.current}
               onUpdate={triggerStickerUpdate}
               interactive={!isCountingDown}
             />
-
-            {/* Face Tracking Indicator Badge */}
-            {streamActive && activeFaceFilter !== 'none' && activeFaceFilter !== 'corner_buddies' && (
-              <div className="absolute top-3 right-3 z-20 pointer-events-none flex items-center gap-1.5 bg-slate-900/80 backdrop-blur-md px-3 py-1 rounded-full text-[11px] border border-teal-800/40">
-                <span
-                  className={`w-2 h-2 rounded-full ${
-                    isFaceDetected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'
-                  }`}
-                />
-                <span className="text-teal-200">
-                  {isFaceDetected ? 'Face Tracked' : 'Searching Face...'}
-                </span>
-              </div>
-            )}
 
             {/* Shutter White Flash Animation */}
             {flashActive && (
@@ -545,20 +550,6 @@ export const Photobooth: React.FC = () => {
                   Start Camera
                 </button>
               )}
-
-              {/* Mirror Toggle */}
-              <button
-                type="button"
-                onClick={() => setIsMirrored(!isMirrored)}
-                title="Toggle Mirror Camera"
-                className={`p-2 rounded-lg border text-xs transition-colors ${
-                  isMirrored
-                    ? 'bg-teal-500/20 border-teal-500/40 text-teal-300'
-                    : 'bg-slate-800 border-slate-700 text-slate-400'
-                }`}
-              >
-                <FlipHorizontal className="w-4 h-4" />
-              </button>
 
               {/* Ambient Floating Bubbles Toggle */}
               <button
@@ -677,7 +668,7 @@ export const Photobooth: React.FC = () => {
               <Smile className="w-3.5 h-3.5" /> Hangyudon Face Filters
             </h4>
             <p className="text-[11px] text-slate-400 mb-3">
-              Tracks your face in real-time. Pick a cute prop to wear!
+              Petite Sanrio accessories. Click to wear, drag & adjust freely!
             </p>
             <div className="grid grid-cols-2 gap-2">
               {[
@@ -692,8 +683,7 @@ export const Photobooth: React.FC = () => {
                   key={f.id}
                   type="button"
                   onClick={() => {
-                    setActiveFaceFilter(f.id as HangyudonFaceFilter);
-                    soundSynthRef.current.playBubblePop();
+                    selectWearableProp(f.id as HangyudonFaceFilter);
                   }}
                   className={`py-2 px-2.5 text-xs font-semibold rounded-xl border text-left transition-all flex flex-col gap-0.5 ${
                     activeFaceFilter === f.id

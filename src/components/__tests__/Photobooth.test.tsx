@@ -101,7 +101,7 @@ describe('Photobooth', () => {
       fireEvent.click(bubblesToggle);
     });
 
-    expect(screen.getByRole('button', { name: /Bubbles: Off/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Bubbles: On/i })).toBeInTheDocument();
   });
 
   it('does not render floating bubbles or face tracking badge when camera is off', async () => {

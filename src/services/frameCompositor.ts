@@ -413,6 +413,195 @@ export class FrameCompositor {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText("Chillin'!", 0, 0);
+    } else if (type === 'hangyudon_hood') {
+      // Petite Hangyudon headband (Apple Photo Booth style accessory)
+      // Dorsal Fin on Crown
+      ctx.fillStyle = '#38b2ac';
+      ctx.strokeStyle = '#1e3a5f';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.ellipse(0, -18, 12, 16, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Side fin flaps
+      ctx.beginPath();
+      ctx.ellipse(-16, -10, 6, 8, -0.4, 0, Math.PI * 2);
+      ctx.ellipse(16, -10, 6, 8, 0.4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Headband Arch
+      ctx.strokeStyle = '#4ecdc4';
+      ctx.lineWidth = 6;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.arc(0, 8, 36, Math.PI * 0.9, Math.PI * 0.1, true);
+      ctx.stroke();
+
+      ctx.strokeStyle = '#1e3a5f';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Mini Hangyudon Mascot Badge
+      ctx.fillStyle = '#4ecdc4';
+      ctx.beginPath();
+      ctx.arc(0, 4, 10, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Badge Eyes
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(-4, 2, 2.8, 0, Math.PI * 2);
+      ctx.arc(4, 2, 2.8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#1e3a5f';
+      ctx.beginPath();
+      ctx.arc(-3.5, 2, 1.4, 0, Math.PI * 2);
+      ctx.arc(4.5, 2, 1.4, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Badge Lips
+      ctx.fillStyle = '#ff8fab';
+      ctx.beginPath();
+      ctx.ellipse(0, 6, 4, 2.2, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    } else if (type === 'sayuri_head') {
+      // Petite Sayuri plush head companion
+      ctx.fillStyle = '#fb7185';
+      ctx.strokeStyle = '#1e3a5f';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(0, 0, 22, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Yellow hair bow
+      ctx.fillStyle = '#fde047';
+      ctx.beginPath();
+      ctx.arc(14, -14, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Eyes
+      ctx.fillStyle = '#1e3a5f';
+      ctx.beginPath();
+      ctx.arc(-6, -2, 2.5, 0, Math.PI * 2);
+      ctx.arc(6, -2, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Tentacles
+      ctx.fillStyle = '#fb7185';
+      ctx.beginPath();
+      for (let i = -14; i <= 14; i += 7) {
+        ctx.arc(i, 20, 3.5, 0, Math.PI * 2);
+      }
+      ctx.fill();
+      ctx.stroke();
+    } else if (type === 'sailor_beret') {
+      // Petite Sailor Beret
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = '#1e3a5f';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.ellipse(0, -6, 30, 18, 0, Math.PI, 0, true);
+      ctx.fill();
+      ctx.stroke();
+
+      // Navy band
+      ctx.fillStyle = '#1e3a5f';
+      ctx.fillRect(-28, -6, 56, 10);
+
+      // Gold badge
+      ctx.fillStyle = '#fde047';
+      ctx.beginPath();
+      ctx.arc(0, -1, 4.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Trailing ribbons
+      ctx.strokeStyle = '#1e3a5f';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(24, 0);
+      ctx.quadraticCurveTo(34, 10, 38, 18);
+      ctx.stroke();
+    } else if (type === 'blush_sparkles') {
+      // Kawaii cheek blush and stars
+      // Left cheek blush
+      ctx.save();
+      ctx.fillStyle = 'rgba(251, 113, 133, 0.45)';
+      ctx.beginPath();
+      ctx.ellipse(-50, 0, 22, 11, -0.08, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#fde047';
+      ctx.font = 'bold 13px sans-serif';
+      ctx.fillText('✦', -40, -8);
+      ctx.restore();
+
+      // Right cheek blush
+      ctx.save();
+      ctx.fillStyle = 'rgba(251, 113, 133, 0.45)';
+      ctx.beginPath();
+      ctx.ellipse(50, 0, 22, 11, 0.08, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#fde047';
+      ctx.font = 'bold 13px sans-serif';
+      ctx.fillText('✦', 38, -8);
+      ctx.restore();
+    } else if (type === 'corner_buddies') {
+      // Bottom corner mascots
+      // Hangyudon on bottom-left
+      ctx.save();
+      ctx.translate(-240, 180);
+      ctx.fillStyle = '#4ecdc4';
+      ctx.strokeStyle = '#1e3a5f';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(0, 0, 28, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(-8, -4, 6, 0, Math.PI * 2);
+      ctx.arc(8, -4, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#1e3a5f';
+      ctx.beginPath();
+      ctx.arc(-7, -4, 3, 0, Math.PI * 2);
+      ctx.arc(9, -4, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ff8fab';
+      ctx.beginPath();
+      ctx.ellipse(0, 8, 10, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+
+      // Sayuri on bottom-right
+      ctx.save();
+      ctx.translate(240, 185);
+      ctx.fillStyle = '#fb7185';
+      ctx.strokeStyle = '#1e3a5f';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(0, 0, 22, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#fde047';
+      ctx.beginPath();
+      ctx.arc(14, -14, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#1e3a5f';
+      ctx.beginPath();
+      ctx.arc(-6, -2, 2.5, 0, Math.PI * 2);
+      ctx.arc(6, -2, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
     } else {
       // General prop fallback
       ctx.fillStyle = '#4ecdc4';

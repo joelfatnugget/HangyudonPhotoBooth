@@ -8,6 +8,9 @@ import {
   HangyudonCharacter,
   SayuriOctopus,
   HangyudonHoodHeadband,
+  HangyudonSailorCap,
+  KawaiiBlushSparkles,
+  CornerBuddies,
   RamenSticker,
   ClamSticker,
   SparkleSticker,
@@ -111,30 +114,38 @@ export const StickerOverlay: React.FC<StickerOverlayProps> = ({
 
   const renderStickerGraphic = (type: StickerType) => {
     switch (type) {
-      case 'hangyudon_face':
-        return <HangyudonCharacter size={96} mood="happy" />;
       case 'hangyudon_hood':
-        return <HangyudonHoodHeadband size={120} />;
+        return <HangyudonHoodHeadband size={84} />;
+      case 'sayuri_head':
+        return <SayuriOctopus size={48} />;
+      case 'sailor_beret':
+        return <HangyudonSailorCap size={72} />;
+      case 'blush_sparkles':
+        return <KawaiiBlushSparkles width={140} height={50} />;
+      case 'corner_buddies':
+        return <CornerBuddies />;
+      case 'hangyudon_face':
+        return <HangyudonCharacter size={56} mood="happy" />;
       case 'sayuri_octopus':
-        return <SayuriOctopus size={76} />;
+        return <SayuriOctopus size={50} />;
       case 'ramen_bowl':
-        return <RamenSticker size={76} />;
+        return <RamenSticker size={52} />;
       case 'clam_pearl':
-        return <ClamSticker size={72} />;
+        return <ClamSticker size={48} />;
       case 'sparkle_stars':
-        return <SparkleSticker size={64} />;
+        return <SparkleSticker size={42} />;
       case 'badge_cute':
-        return <BadgeSticker text="KAWAII" subtext="さゆり & はんぎょ" size={76} />;
+        return <BadgeSticker text="KAWAII" subtext="さゆり & はんぎょ" size={54} />;
       case 'badge_hangyudon':
-        return <BadgeSticker text="はんぎょどん" subtext="BEST FRIEND" size={82} />;
+        return <BadgeSticker text="はんぎょどん" subtext="BEST FRIEND" size={56} />;
       case 'speech_bubble':
         return (
-          <div className="bg-white/95 text-slate-800 font-cute font-bold text-xs px-3 py-1.5 rounded-2xl border-2 border-slate-800 shadow-md">
+          <div className="bg-white/95 text-slate-800 font-cute font-bold text-[11px] px-2.5 py-1 rounded-xl border border-slate-800 shadow-sm">
             Chillin&apos; underwater!
           </div>
         );
       default:
-        return <HangyudonCharacter size={80} />;
+        return <HangyudonCharacter size={52} />;
     }
   };
 

@@ -69,57 +69,60 @@ export const FaceFilterOverlay: React.FC<FaceFilterOverlayProps> = ({
     switch (filter) {
       case 'hood_headband': {
         const anchor = tracker.calculateAnchor(mappedFace, 'headTop');
+        const petiteSize = Math.min(100, Math.max(72, mappedFace.width * 0.6));
         return (
           <div
             data-testid="face-filter-hood_headband"
             style={{
               position: 'absolute',
               left: `${anchor.x}px`,
-              top: `${anchor.y}px`,
-              transform: `translate(-50%, -100%) rotate(${anchor.rotation}deg)`,
-              transformOrigin: 'bottom center',
+              top: `${mappedFace.y + mappedFace.height * 0.08}px`,
+              transform: `translate(-50%, -50%) rotate(${anchor.rotation}deg)`,
+              transformOrigin: 'center center',
             }}
             className="pointer-events-none flex items-center justify-center transition-all duration-75"
           >
-            <HangyudonHoodHeadband size={anchor.width} />
+            <HangyudonHoodHeadband size={petiteSize} />
           </div>
         );
       }
 
       case 'sayuri_head': {
         const anchor = tracker.calculateAnchor(mappedFace, 'headTop');
+        const petiteSize = Math.min(60, Math.max(44, mappedFace.width * 0.38));
         return (
           <div
             data-testid="face-filter-sayuri_head"
             style={{
               position: 'absolute',
               left: `${anchor.x}px`,
-              top: `${anchor.y}px`,
-              transform: `translate(-50%, -95%) rotate(${anchor.rotation}deg)`,
-              transformOrigin: 'bottom center',
+              top: `${mappedFace.y - mappedFace.height * 0.02}px`,
+              transform: `translate(-50%, -70%) rotate(${anchor.rotation}deg)`,
+              transformOrigin: 'center center',
             }}
             className="pointer-events-none flex items-center justify-center animate-wiggle transition-all duration-75"
           >
-            <SayuriOctopus size={anchor.width * 0.55} />
+            <SayuriOctopus size={petiteSize} />
           </div>
         );
       }
 
       case 'sailor_beret': {
         const anchor = tracker.calculateAnchor(mappedFace, 'sailorTop');
+        const petiteSize = Math.min(90, Math.max(68, mappedFace.width * 0.55));
         return (
           <div
             data-testid="face-filter-sailor_beret"
             style={{
               position: 'absolute',
               left: `${anchor.x}px`,
-              top: `${anchor.y}px`,
-              transform: `translate(-50%, -100%) rotate(${anchor.rotation}deg)`,
-              transformOrigin: 'bottom center',
+              top: `${mappedFace.y + mappedFace.height * 0.05}px`,
+              transform: `translate(-50%, -65%) rotate(${anchor.rotation}deg)`,
+              transformOrigin: 'center center',
             }}
             className="pointer-events-none flex items-center justify-center transition-all duration-75"
           >
-            <HangyudonSailorCap size={anchor.width} />
+            <HangyudonSailorCap size={petiteSize} />
           </div>
         );
       }
@@ -142,7 +145,7 @@ export const FaceFilterOverlay: React.FC<FaceFilterOverlayProps> = ({
               }}
               className="relative flex items-center justify-center"
             >
-              <div className="w-12 h-6 bg-rose-400/40 rounded-full blur-[2px]" />
+              <div className="w-10 h-5 bg-rose-400/40 rounded-full blur-[2px]" />
               <span className="absolute -top-2 -right-1 text-yellow-300 text-xs animate-pulse">✦</span>
               <span className="absolute -bottom-1 -left-1 text-teal-300 text-[9px]">★</span>
             </div>
@@ -157,7 +160,7 @@ export const FaceFilterOverlay: React.FC<FaceFilterOverlayProps> = ({
               }}
               className="relative flex items-center justify-center"
             >
-              <div className="w-12 h-6 bg-rose-400/40 rounded-full blur-[2px]" />
+              <div className="w-10 h-5 bg-rose-400/40 rounded-full blur-[2px]" />
               <span className="absolute -top-2 -left-1 text-yellow-300 text-xs animate-pulse">✦</span>
               <span className="absolute -bottom-1 -right-1 text-teal-300 text-[9px]">★</span>
             </div>
