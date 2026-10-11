@@ -121,17 +121,6 @@ export const Photobooth: React.FC = () => {
           } catch {
             // Frame detection error handled gracefully
           }
-        } else if (!streamActive && activeFaceFilter !== 'none') {
-          const time = timestamp * 0.002;
-          const mock: DetectedFace = {
-            x: 250,
-            y: 165 + Math.sin(time) * 8,
-            width: 140,
-            height: 160,
-            rollAngle: Math.sin(time * 0.7) * 3,
-          };
-          setDetectedFace(mock);
-          setIsFaceDetected(true);
         } else {
           setDetectedFace(null);
           setIsFaceDetected(false);
@@ -190,6 +179,9 @@ export const Photobooth: React.FC = () => {
       tracks.forEach((t) => t.stop());
       videoRef.current.srcObject = null;
     }
+    bgCanvasRef.current = null;
+    setDetectedFace(null);
+    setIsFaceDetected(false);
     setStreamActive(false);
   };
 
@@ -437,26 +429,30 @@ export const Photobooth: React.FC = () => {
               </div>
             )}
 
-            {/* Interactive Background Canvas (Ripples, Bubbles, Pops) */}
-            <InteractiveBackground
-              engine={bubbleEngineRef.current}
-              sound={soundSynthRef.current}
-              width={640}
-              height={480}
-              onBubblePop={handleBubblePop}
-              filterMode={filterMode}
-              interactiveMode={!isCountingDown}
-              onCanvasRef={(c) => {
-                bgCanvasRef.current = c;
-              }}
-            />
+            {/* Interactive Background Canvas (Ripples, Bubbles, Pops) - Only when camera stream is active */}
+            {streamActive && (
+              <InteractiveBackground
+                engine={bubbleEngineRef.current}
+                sound={soundSynthRef.current}
+                width={640}
+                height={480}
+                onBubblePop={handleBubblePop}
+                filterMode={filterMode}
+                interactiveMode={!isCountingDown}
+                onCanvasRef={(c) => {
+                  bgCanvasRef.current = c;
+                }}
+              />
+            )}
 
-            {/* Hangyudon Face Filter Overlay */}
-            <FaceFilterOverlay
-              face={detectedFace}
-              filter={activeFaceFilter}
-              tracker={faceTrackerRef.current}
-            />
+            {/* Hangyudon Face Filter Overlay - Only when camera stream is active */}
+            {streamActive && (
+              <FaceFilterOverlay
+                face={detectedFace}
+                filter={activeFaceFilter}
+                tracker={faceTrackerRef.current}
+              />
+            )}
 
             {/* Draggable Stickers Overlay */}
             <StickerOverlay
@@ -466,7 +462,7 @@ export const Photobooth: React.FC = () => {
             />
 
             {/* Face Tracking Indicator Badge */}
-            {activeFaceFilter !== 'none' && (
+            {streamActive && activeFaceFilter !== 'none' && (
               <div className="absolute top-3 right-3 z-20 pointer-events-none flex items-center gap-1.5 bg-slate-900/80 backdrop-blur-md px-3 py-1 rounded-full text-[11px] border border-teal-800/40">
                 <span
                   className={`w-2 h-2 rounded-full ${
@@ -500,10 +496,12 @@ export const Photobooth: React.FC = () => {
               </div>
             )}
 
-            {/* Floating Top Hint for Interactivity */}
-            <div className="absolute top-3 left-3 z-20 pointer-events-none bg-slate-900/60 backdrop-blur-md px-3 py-1 rounded-full text-[11px] text-teal-200 border border-teal-800/40">
-              Pop floating bubbles or tap anywhere to create ripples!
-            </div>
+            {/* Floating Top Hint for Interactivity - Only when camera is on */}
+            {streamActive && (
+              <div className="absolute top-3 left-3 z-20 pointer-events-none bg-slate-900/60 backdrop-blur-md px-3 py-1 rounded-full text-[11px] text-teal-200 border border-teal-800/40">
+                Pop floating bubbles or tap anywhere to create ripples!
+              </div>
+            )}
           </div>
 
           {/* Camera Stage Bottom Controls Bar */}

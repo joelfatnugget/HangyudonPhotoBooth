@@ -88,4 +88,19 @@ describe('Photobooth', () => {
 
     expect(fullMaskBtn).toHaveClass('border-teal-400');
   });
+
+  it('does not render floating bubbles or face tracking badge when camera is off', async () => {
+    let renderedContainer: HTMLElement;
+    await act(async () => {
+      const { container } = render(<Photobooth />);
+      renderedContainer = container;
+    });
+
+    // When camera is off, interactive background canvas should not be present
+    const interactiveCanvas = renderedContainer!.querySelector('canvas[title*="bubbles"]');
+    expect(interactiveCanvas).toBeNull();
+
+    // Face tracking badge should not be present
+    expect(screen.queryByText(/Face Tracked|Searching Face/i)).toBeNull();
+  });
 });
