@@ -10,6 +10,7 @@ interface InteractiveBackgroundProps {
   onBubblePop?: (bubble: Bubble) => void;
   filterMode?: 'normal' | 'dreamy' | 'ocean' | 'vivid' | 'vintage';
   interactiveMode?: boolean;
+  onCanvasRef?: (canvas: HTMLCanvasElement | null) => void;
 }
 
 export const InteractiveBackground: React.FC<InteractiveBackgroundProps> = ({
@@ -20,6 +21,7 @@ export const InteractiveBackground: React.FC<InteractiveBackgroundProps> = ({
   onBubblePop,
   filterMode = 'ocean',
   interactiveMode = true,
+  onCanvasRef,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const animFrameRef = useRef<number | null>(null);
@@ -231,13 +233,15 @@ export const InteractiveBackground: React.FC<InteractiveBackgroundProps> = ({
   );
 
   useEffect(() => {
+    onCanvasRef?.(canvasRef.current);
     animFrameRef.current = requestAnimationFrame(renderLoop);
     return () => {
+      onCanvasRef?.(null);
       if (animFrameRef.current !== null) {
         cancelAnimationFrame(animFrameRef.current);
       }
     };
-  }, [renderLoop]);
+  }, [renderLoop, onCanvasRef]);
 
   // Handle pointer down (touch or click)
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {

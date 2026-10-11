@@ -16,6 +16,7 @@ import {
   FrameThemeKey,
   StripLayoutType,
 } from '../services/photoStripCompositor';
+import { FrameCompositor } from '../services/frameCompositor';
 import { InteractiveBackground } from './InteractiveBackground';
 import { StickerOverlay } from './StickerOverlay';
 import { FaceFilterOverlay } from './FaceFilterOverlay';
@@ -38,6 +39,8 @@ export const Photobooth: React.FC = () => {
   const stickerManagerRef = useRef<StickerManager>(new StickerManager());
   const compositorRef = useRef<PhotoStripCompositor>(new PhotoStripCompositor());
   const faceTrackerRef = useRef<FaceTrackerEngine>(new FaceTrackerEngine({ smoothingAlpha: 0.35 }));
+  const frameCompositorRef = useRef<FrameCompositor>(new FrameCompositor());
+  const bgCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Face Filter State
   const [activeFaceFilter, setActiveFaceFilter] = useState<HangyudonFaceFilter>('hood_headband');
@@ -196,152 +199,24 @@ export const Photobooth: React.FC = () => {
     };
   }, []);
 
-  // Draw active Hangyudon face filter onto canvas for export
-  const drawFaceFilterToCanvas = (
-    ctx: CanvasRenderingContext2D,
-    face: DetectedFace,
-    filter: HangyudonFaceFilter
-  ) => {
-    if (filter === 'none') return;
-    const tracker = faceTrackerRef.current;
-    ctx.save();
-
-    if (filter === 'hood_headband') {
-      const anchor = tracker.calculateAnchor(face, 'headTop');
-      ctx.translate(anchor.x, anchor.y);
-      ctx.rotate((anchor.rotation * Math.PI) / 180);
-      ctx.strokeStyle = '#4ecdc4';
-      ctx.lineWidth = anchor.width * 0.12;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.arc(0, 15, anchor.width * 0.42, Math.PI, 0, false);
-      ctx.stroke();
-
-      ctx.fillStyle = '#38b2ac';
-      ctx.beginPath();
-      ctx.ellipse(0, -anchor.width * 0.38, anchor.width * 0.12, anchor.width * 0.22, 0, 0, Math.PI * 2);
-      ctx.fill();
-    } else if (filter === 'wavy_lips') {
-      const anchor = tracker.calculateAnchor(face, 'mouth');
-      ctx.translate(anchor.x, anchor.y);
-      ctx.rotate((anchor.rotation * Math.PI) / 180);
-      ctx.fillStyle = '#ff8fab';
-      ctx.strokeStyle = '#1e3a5f';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.ellipse(0, 0, anchor.width * 0.5, anchor.width * 0.22, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-    } else if (filter === 'big_eyes') {
-      const anchor = tracker.calculateAnchor(face, 'eyes');
-      ctx.translate(anchor.x, anchor.y);
-      ctx.rotate((anchor.rotation * Math.PI) / 180);
-      const eyeR = anchor.width * 0.18;
-      const eyeSpacing = anchor.width * 0.32;
-      [-eyeSpacing, eyeSpacing].forEach((xOff) => {
-        ctx.fillStyle = '#ffffff';
-        ctx.strokeStyle = '#1e3a5f';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(xOff, 0, eyeR, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-        ctx.fillStyle = '#1e3a5f';
-        ctx.beginPath();
-        ctx.arc(xOff + 1, 0, eyeR * 0.5, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.arc(xOff + 3, -eyeR * 0.2, eyeR * 0.2, 0, Math.PI * 2);
-        ctx.fill();
-      });
-    } else if (filter === 'sayuri_head') {
-      const anchor = tracker.calculateAnchor(face, 'headTop');
-      ctx.translate(anchor.x, anchor.y - anchor.height * 0.5);
-      ctx.fillStyle = '#fb7185';
-      ctx.strokeStyle = '#1e3a5f';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.arc(0, 0, anchor.width * 0.25, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-    } else if (filter === 'full_mask') {
-      const anchor = tracker.calculateAnchor(face, 'faceCenter');
-      ctx.translate(anchor.x, anchor.y);
-      ctx.rotate((anchor.rotation * Math.PI) / 180);
-      ctx.fillStyle = '#4ecdc4';
-      ctx.strokeStyle = '#1e3a5f';
-      ctx.lineWidth = 4;
-      ctx.beginPath();
-      ctx.ellipse(0, 0, anchor.width * 0.48, anchor.height * 0.48, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-      ctx.fillStyle = '#ff8fab';
-      ctx.beginPath();
-      ctx.ellipse(0, 0, anchor.width * 0.18, anchor.height * 0.08, 0, 0, Math.PI * 2);
-      ctx.fill();
-    } else if (filter === 'ramen_feeder') {
-      const anchor = tracker.calculateAnchor(face, 'chin');
-      ctx.translate(anchor.x, anchor.y);
-      ctx.fillStyle = '#ef4444';
-      ctx.strokeStyle = '#1e3a5f';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.arc(0, 0, anchor.width * 0.35, 0, Math.PI);
-      ctx.fill();
-      ctx.stroke();
-    }
-
-    ctx.restore();
-  };
-
-  // Capture single frame from live video or mock canvas
+  // Capture single frame with complete composited effects, filters, and stickers
   const captureFrame = useCallback((): string => {
-    const video = videoRef.current;
     const canvas = document.createElement('canvas');
     canvas.width = 640;
     canvas.height = 480;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return '';
 
-    if (streamActive && video && video.readyState >= 2) {
-      if (isMirrored) {
-        ctx.translate(canvas.width, 0);
-        ctx.scale(-1, 1);
-      }
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      if (isMirrored) {
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-      }
-    } else {
-      const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-      grad.addColorStop(0, '#bae6fd');
-      grad.addColorStop(1, '#a7f3d0');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      ctx.fillStyle = '#134e4a';
-      ctx.font = 'bold 24px Fredoka, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('Hangyudon & Friends Photo', canvas.width / 2, canvas.height / 2 - 30);
-    }
-
-    // Apply color filter if selected
-    if (filterMode === 'ocean') {
-      ctx.fillStyle = 'rgba(20, 184, 166, 0.12)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    } else if (filterMode === 'dreamy') {
-      ctx.fillStyle = 'rgba(244, 114, 182, 0.12)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    } else if (filterMode === 'vintage') {
-      ctx.fillStyle = 'rgba(254, 240, 138, 0.15)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    }
-
-    // Draw tracked face filter if active
-    if (activeFaceFilter !== 'none' && detectedFace) {
-      drawFaceFilterToCanvas(ctx, detectedFace, activeFaceFilter);
-    }
+    frameCompositorRef.current.compositeFullFrame({
+      targetCanvas: canvas,
+      video: videoRef.current,
+      streamActive,
+      isMirrored,
+      backgroundCanvas: bgCanvasRef.current,
+      face: detectedFace,
+      faceFilter: activeFaceFilter,
+      tracker: faceTrackerRef.current,
+      stickers: stickerManagerRef.current.getStickers(),
+      colorFilter: filterMode,
+    });
 
     return canvas.toDataURL('image/jpeg', 0.95);
   }, [streamActive, isMirrored, filterMode, activeFaceFilter, detectedFace]);
@@ -571,6 +446,9 @@ export const Photobooth: React.FC = () => {
               onBubblePop={handleBubblePop}
               filterMode={filterMode}
               interactiveMode={!isCountingDown}
+              onCanvasRef={(c) => {
+                bgCanvasRef.current = c;
+              }}
             />
 
             {/* Hangyudon Face Filter Overlay */}
