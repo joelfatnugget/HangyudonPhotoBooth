@@ -41,6 +41,7 @@ export interface BubbleEngineOptions {
   width?: number;
   height?: number;
   initialBubbleCount?: number;
+  faceSafeZone?: boolean;
 }
 
 const ITEM_TYPES: BubbleItemType[] = ['plain', 'ramen', 'star', 'sayuri', 'heart', 'pearl', 'fish'];
@@ -52,11 +53,13 @@ export class BubbleEngine {
   private particles: PopParticle[] = [];
   private ripples: WaterRipple[] = [];
   private nextId: number = 1;
+  private faceSafeZone: boolean = true;
 
   constructor(options: BubbleEngineOptions = {}) {
     this.width = options.width ?? 800;
     this.height = options.height ?? 600;
-    const count = options.initialBubbleCount ?? 15;
+    this.faceSafeZone = options.faceSafeZone ?? true;
+    const count = options.initialBubbleCount ?? 7;
 
     for (let i = 0; i < count; i++) {
       this.bubbles.push(this.createRandomBubble(true));
@@ -66,6 +69,14 @@ export class BubbleEngine {
   public setBounds(width: number, height: number): void {
     this.width = width;
     this.height = height;
+  }
+
+  public setFaceSafeZone(enabled: boolean): void {
+    this.faceSafeZone = enabled;
+  }
+
+  public getFaceSafeZone(): boolean {
+    return this.faceSafeZone;
   }
 
   public getBubbles(): Bubble[] {
@@ -84,20 +95,33 @@ export class BubbleEngine {
     return `${prefix}-${this.nextId++}-${Math.random().toString(36).substring(2, 7)}`;
   }
 
+  private getRandomX(): number {
+    if (this.faceSafeZone) {
+      // Keep bubbles strictly in perimeter border lanes (left 22% or right 22%)
+      const isLeftLane = Math.random() < 0.5;
+      if (isLeftLane) {
+        return Math.random() * (this.width * 0.22);
+      } else {
+        return this.width * 0.78 + Math.random() * (this.width * 0.22);
+      }
+    }
+    return Math.random() * this.width;
+  }
+
   private createRandomBubble(randomY: boolean = false): Bubble {
-    const radius = 22 + Math.random() * 26; // 22px to 48px
+    const radius = 18 + Math.random() * 20; // 18px to 38px (elegant, not overwhelming)
     const itemType = ITEM_TYPES[Math.floor(Math.random() * ITEM_TYPES.length)];
 
     return {
       id: this.generateId('bubble'),
-      x: Math.random() * this.width,
+      x: this.getRandomX(),
       y: randomY ? Math.random() * this.height : this.height + radius + 10,
       radius,
-      speed: 0.4 + Math.random() * 0.8, // pixels per 16ms
+      speed: 0.35 + Math.random() * 0.6, // gentle drifting speed
       wobbleSpeed: 0.002 + Math.random() * 0.003,
-      wobbleAmplitude: 12 + Math.random() * 18,
+      wobbleAmplitude: 8 + Math.random() * 12,
       wobbleOffset: Math.random() * Math.PI * 2,
-      opacity: 0.65 + Math.random() * 0.3,
+      opacity: 0.7 + Math.random() * 0.25,
       popped: false,
       itemType,
       hueShift: Math.floor(Math.random() * 360),
@@ -197,7 +221,7 @@ export class BubbleEngine {
       // Wrap around or respawn from bottom if floated out of screen
       if (b.y < -b.radius - 20) {
         b.y = this.height + b.radius + 10;
-        b.x = Math.random() * this.width;
+        b.x = this.getRandomX();
       }
     }
 

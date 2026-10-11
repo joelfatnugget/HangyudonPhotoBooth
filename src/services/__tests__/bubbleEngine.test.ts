@@ -111,4 +111,29 @@ describe('BubbleEngine', () => {
     expect(updatedRipple.radius).toBeGreaterThan(initialRadius);
     expect(updatedRipple.opacity).toBeLessThan(initialOpacity);
   });
+
+  it('keeps bubbles in border perimeter lanes when faceSafeZone is enabled', () => {
+    const engine = new BubbleEngine({
+      width: 1000,
+      height: 600,
+      initialBubbleCount: 10,
+      faceSafeZone: true,
+    });
+
+    const bubbles = engine.getBubbles();
+    // Every bubble should be in the left lane (x < 250) or right lane (x > 750)
+    bubbles.forEach((b) => {
+      const inLeftLane = b.x <= 250;
+      const inRightLane = b.x >= 750;
+      expect(inLeftLane || inRightLane).toBe(true);
+    });
+
+    // Test respawn when bubble leaves top of screen
+    const firstBubble = bubbles[0];
+    firstBubble.y = -100;
+    engine.update(20);
+
+    // Respawned bubble should also be in perimeter lane
+    expect(firstBubble.x <= 250 || firstBubble.x >= 750).toBe(true);
+  });
 });

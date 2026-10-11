@@ -61,6 +61,11 @@ export const Photobooth: React.FC = () => {
   const [filterMode, setFilterMode] = useState<FilterMode>('ocean');
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [poppedCount, setPoppedCount] = useState<number>(0);
+  const [bubblesActive, setBubblesActive] = useState<boolean>(true);
+
+  // Stage measurement for accurate AR accessory projection
+  const stageContainerRef = useRef<HTMLDivElement | null>(null);
+  const [stageSize, setStageSize] = useState<{ width: number; height: number }>({ width: 640, height: 480 });
 
   // Capture & Timer State
   const [isCountingDown, setIsCountingDown] = useState<boolean>(false);
@@ -94,6 +99,21 @@ export const Photobooth: React.FC = () => {
       }).catch(() => {});
     }
   }, [selectedDeviceId]);
+
+  // Track Stage dimensions for responsive AR placement
+  useEffect(() => {
+    const updateSize = () => {
+      if (stageContainerRef.current) {
+        setStageSize({
+          width: stageContainerRef.current.clientWidth || 640,
+          height: stageContainerRef.current.clientHeight || 480,
+        });
+      }
+    };
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, []);
 
   // Real-time Face Tracking Loop
   useEffect(() => {
@@ -202,7 +222,7 @@ export const Photobooth: React.FC = () => {
       video: videoRef.current,
       streamActive,
       isMirrored,
-      backgroundCanvas: bgCanvasRef.current,
+      backgroundCanvas: bubblesActive ? bgCanvasRef.current : null,
       face: detectedFace,
       faceFilter: activeFaceFilter,
       tracker: faceTrackerRef.current,
@@ -211,7 +231,7 @@ export const Photobooth: React.FC = () => {
     });
 
     return canvas.toDataURL('image/jpeg', 0.95);
-  }, [streamActive, isMirrored, filterMode, activeFaceFilter, detectedFace]);
+  }, [streamActive, bubblesActive, isMirrored, filterMode, activeFaceFilter, detectedFace]);
 
   // Start Photobooth Countdown Sequence
   const startCountdown = () => {
@@ -386,7 +406,10 @@ export const Photobooth: React.FC = () => {
         {/* Left / Center Viewport (Camera + Interactive Overlay + Flash) */}
         <div className="lg:col-span-3 flex flex-col items-center">
           {/* Camera Stage Container */}
-          <div className="relative w-full max-w-3xl aspect-[4/3] bg-slate-900 rounded-3xl overflow-hidden border-4 border-teal-500/40 shadow-2xl shadow-teal-950/40 select-none">
+          <div
+            ref={stageContainerRef}
+            className="relative w-full max-w-3xl aspect-[4/3] bg-slate-900 rounded-3xl overflow-hidden border-4 border-teal-500/40 shadow-2xl shadow-teal-950/40 select-none"
+          >
             {/* Live Video Feed */}
             <video
               ref={videoRef}
@@ -411,7 +434,7 @@ export const Photobooth: React.FC = () => {
                   Ready for your Hangyudon Photobooth?
                 </h3>
                 <p className="text-xs md:text-sm text-slate-300 max-w-md mb-5 font-sans">
-                  Click &apos;Start Camera&apos; below to launch your camera! You can interact with the floating bubbles, pop them, or decorate with cute stickers anytime.
+                  Click &apos;Start Camera&apos; below to launch your camera! You can wear cute Sanrio headbands, cheek blush, or decorate with stamps anytime.
                 </p>
                 {cameraError && (
                   <p className="text-xs text-rose-300 bg-rose-950/80 border border-rose-800 px-3 py-1.5 rounded-lg mb-4">
@@ -429,13 +452,13 @@ export const Photobooth: React.FC = () => {
               </div>
             )}
 
-            {/* Interactive Background Canvas (Ripples, Bubbles, Pops) - Only when camera stream is active */}
-            {streamActive && (
+            {/* Interactive Background Canvas (Ripples, Bubbles, Pops) - Only when camera stream & bubbles active */}
+            {streamActive && bubblesActive && (
               <InteractiveBackground
                 engine={bubbleEngineRef.current}
                 sound={soundSynthRef.current}
-                width={640}
-                height={480}
+                width={stageSize.width}
+                height={stageSize.height}
                 onBubblePop={handleBubblePop}
                 filterMode={filterMode}
                 interactiveMode={!isCountingDown}
@@ -451,6 +474,11 @@ export const Photobooth: React.FC = () => {
                 face={detectedFace}
                 filter={activeFaceFilter}
                 tracker={faceTrackerRef.current}
+                containerWidth={stageSize.width}
+                containerHeight={stageSize.height}
+                videoWidth={videoRef.current?.videoWidth || 640}
+                videoHeight={videoRef.current?.videoHeight || 480}
+                isMirrored={isMirrored}
               />
             )}
 
@@ -462,7 +490,7 @@ export const Photobooth: React.FC = () => {
             />
 
             {/* Face Tracking Indicator Badge */}
-            {streamActive && activeFaceFilter !== 'none' && (
+            {streamActive && activeFaceFilter !== 'none' && activeFaceFilter !== 'corner_buddies' && (
               <div className="absolute top-3 right-3 z-20 pointer-events-none flex items-center gap-1.5 bg-slate-900/80 backdrop-blur-md px-3 py-1 rounded-full text-[11px] border border-teal-800/40">
                 <span
                   className={`w-2 h-2 rounded-full ${
@@ -493,13 +521,6 @@ export const Photobooth: React.FC = () => {
                 <div className="mt-4 px-4 py-1.5 rounded-full bg-slate-900/90 border border-teal-400 text-teal-200 font-bold text-sm">
                   Shot {currentShotNumber} of {totalShots}
                 </div>
-              </div>
-            )}
-
-            {/* Floating Top Hint for Interactivity - Only when camera is on */}
-            {streamActive && (
-              <div className="absolute top-3 left-3 z-20 pointer-events-none bg-slate-900/60 backdrop-blur-md px-3 py-1 rounded-full text-[11px] text-teal-200 border border-teal-800/40">
-                Pop floating bubbles or tap anywhere to create ripples!
               </div>
             )}
           </div>
@@ -537,6 +558,20 @@ export const Photobooth: React.FC = () => {
                 }`}
               >
                 <FlipHorizontal className="w-4 h-4" />
+              </button>
+
+              {/* Ambient Floating Bubbles Toggle */}
+              <button
+                type="button"
+                onClick={() => setBubblesActive(!bubblesActive)}
+                className={`px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+                  bubblesActive
+                    ? 'bg-teal-500/20 border-teal-500/40 text-teal-300'
+                    : 'bg-slate-800 border-slate-700 text-slate-400'
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                Bubbles: {bubblesActive ? 'On' : 'Off'}
               </button>
 
               {/* Camera Switcher (if multiple cameras exist) */}
@@ -646,13 +681,12 @@ export const Photobooth: React.FC = () => {
             </p>
             <div className="grid grid-cols-2 gap-2">
               {[
-                { id: 'hood_headband', name: 'Headband', desc: 'Dorsal fin' },
-                { id: 'full_mask', name: 'Full Face Mask', desc: 'Full Hangyudon' },
-                { id: 'sayuri_head', name: 'Sayuri on Head', desc: 'Octopus pal' },
-                { id: 'wavy_lips', name: 'Wavy Lips', desc: 'Iconic mouth' },
-                { id: 'big_eyes', name: 'Big Fish Eyes', desc: 'Eyes & blush' },
-                { id: 'ramen_feeder', name: 'Ramen Bowl', desc: 'Chomping noodles' },
-                { id: 'none', name: 'No Face Filter', desc: 'Natural face' },
+                { id: 'hood_headband', name: 'Hangyudon Headband', desc: 'Fin & mini badge' },
+                { id: 'sayuri_head', name: 'Sayuri on Head', desc: 'Plush companion' },
+                { id: 'blush_sparkles', name: 'Cheek Blush', desc: 'Kawaii blush & stars' },
+                { id: 'sailor_beret', name: 'Sailor Beret', desc: 'Navy nautical cap' },
+                { id: 'corner_buddies', name: 'Corner Buddies', desc: 'Mascot frame cheer' },
+                { id: 'none', name: 'Clean (No Prop)', desc: 'Natural clear view' },
               ].map((f) => (
                 <button
                   key={f.id}

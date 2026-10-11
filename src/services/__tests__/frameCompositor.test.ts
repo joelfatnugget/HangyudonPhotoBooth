@@ -88,12 +88,12 @@ describe('FrameCompositor', () => {
     };
 
     const filterModes = [
-      'full_mask',
+      'none',
       'hood_headband',
       'sayuri_head',
-      'wavy_lips',
-      'big_eyes',
-      'ramen_feeder',
+      'blush_sparkles',
+      'sailor_beret',
+      'corner_buddies',
     ] as const;
 
     filterModes.forEach((filter) => {

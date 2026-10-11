@@ -108,4 +108,71 @@ describe('FaceTrackerEngine', () => {
     const result4 = engine.processFrame(null, result3);
     expect(result4).toBeNull();
   });
+
+  it('maps normalized face coordinates accurately to container dimensions with object-cover and mirror support', () => {
+    const engine = new FaceTrackerEngine();
+    const face: DetectedFace = {
+      x: 320,
+      y: 180,
+      width: 640,
+      height: 360,
+      rollAngle: 4,
+      normalized: {
+        x: 0.25,
+        y: 0.25,
+        width: 0.5,
+        height: 0.5,
+      },
+    };
+
+    // Video 1280x720, container 640x480 (4:3 aspect ratio)
+    const mapped = engine.mapFaceToContainer({
+      face,
+      videoWidth: 1280,
+      videoHeight: 720,
+      containerWidth: 640,
+      containerHeight: 480,
+      isMirrored: false,
+    });
+
+    expect(mapped.width).toBeGreaterThan(0);
+    expect(mapped.height).toBeGreaterThan(0);
+    expect(mapped.x).toBeGreaterThanOrEqual(0);
+    expect(mapped.y).toBeGreaterThanOrEqual(0);
+    expect(mapped.rollAngle).toBe(4);
+
+    // Mirrored mode should flip X coordinate and invert roll angle
+    const mirrored = engine.mapFaceToContainer({
+      face,
+      videoWidth: 1280,
+      videoHeight: 720,
+      containerWidth: 640,
+      containerHeight: 480,
+      isMirrored: true,
+    });
+    expect(mirrored.rollAngle).toBe(-4);
+    expect(mirrored.width).toBe(mapped.width);
+  });
+
+  it('calculates cheek blush anchors that do not obstruct the center of the face', () => {
+    const engine = new FaceTrackerEngine();
+    const face: DetectedFace = {
+      x: 200,
+      y: 150,
+      width: 100,
+      height: 120,
+      rollAngle: 0,
+    };
+
+    const leftCheek = engine.calculateAnchor(face, 'blushLeft');
+    const rightCheek = engine.calculateAnchor(face, 'blushRight');
+
+    // Left cheek must be on the left side of the face
+    expect(leftCheek.x).toBeLessThan(250);
+    // Right cheek must be on the right side of the face
+    expect(rightCheek.x).toBeGreaterThan(250);
+    // Both cheeks should sit below eye level
+    expect(leftCheek.y).toBeGreaterThan(150 + 40);
+    expect(rightCheek.y).toBeGreaterThan(150 + 40);
+  });
 });

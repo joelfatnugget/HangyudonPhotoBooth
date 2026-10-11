@@ -277,7 +277,6 @@ export const InteractiveBackground: React.FC<InteractiveBackgroundProps> = ({
       height={height}
       onPointerDown={handlePointerDown}
       className="absolute inset-0 z-10 w-full h-full cursor-pointer pointer-events-auto touch-none"
-      title="Tap or click bubbles to pop, click background to spawn bubbles!"
     />
   );
 };

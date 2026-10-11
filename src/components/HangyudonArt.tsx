@@ -185,53 +185,135 @@ export const HangyudonHoodHeadband: React.FC<{
   return (
     <svg
       width={size}
-      height={size * 0.75}
-      viewBox="0 0 160 120"
+      height={size * 0.55}
+      viewBox="0 0 160 88"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
     >
-      {/* Dorsal Fin */}
+      {/* Dorsal Fin on Crown */}
       <path
-        d="M80 8 C70 8, 70 24, 70 24 C70 24, 80 20, 90 24 C90 24, 90 8, 80 8 Z"
+        d="M80 6 C70 6, 68 32, 68 32 C68 32, 80 26, 92 32 C92 32, 90 6, 80 6 Z"
         fill="#38b2ac"
         stroke="#1e3a5f"
         strokeWidth="3.5"
       />
-      {/* Left/Right fins */}
-      <path d="M60 20 C54 12, 64 12, 68 22" fill="#38b2ac" stroke="#1e3a5f" strokeWidth="3" />
-      <path d="M100 20 C106 12, 96 12, 92 22" fill="#38b2ac" stroke="#1e3a5f" strokeWidth="3" />
+      {/* Left and Right Fin Flaps */}
+      <path d="M52 24 C44 14, 58 14, 64 28" fill="#38b2ac" stroke="#1e3a5f" strokeWidth="3" />
+      <path d="M108 24 C116 14, 102 14, 96 28" fill="#38b2ac" stroke="#1e3a5f" strokeWidth="3" />
 
-      {/* Arch headband */}
+      {/* Gentle Headband Arch resting on hair */}
       <path
-        d="M20 95 C20 40, 140 40, 140 95"
+        d="M20 82 C20 42, 140 42, 140 82"
         fill="none"
         stroke="#4ecdc4"
-        strokeWidth="18"
+        strokeWidth="9"
         strokeLinecap="round"
       />
       <path
-        d="M20 95 C20 40, 140 40, 140 95"
+        d="M20 82 C20 42, 140 42, 140 82"
         fill="none"
         stroke="#1e3a5f"
-        strokeWidth="3.5"
+        strokeWidth="2.5"
         strokeLinecap="round"
       />
 
-      {/* Mini Hangyudon face on center */}
-      <circle cx="80" cy="42" r="18" fill="#4ecdc4" stroke="#1e3a5f" strokeWidth="3" />
-      <circle cx="73" cy="38" r="4" fill="#ffffff" stroke="#1e3a5f" strokeWidth="2" />
-      <circle cx="74" cy="38" r="2" fill="#1e3a5f" />
-      <circle cx="87" cy="38" r="4" fill="#ffffff" stroke="#1e3a5f" strokeWidth="2" />
-      <circle cx="86" cy="38" r="2" fill="#1e3a5f" />
-      {/* Wavy lips */}
+      {/* Mini Hangyudon Mascot Badge on the headband */}
+      <circle cx="80" cy="46" r="14" fill="#4ecdc4" stroke="#1e3a5f" strokeWidth="2.5" />
+      <circle cx="74" cy="43" r="3.2" fill="#ffffff" stroke="#1e3a5f" strokeWidth="1.5" />
+      <circle cx="75" cy="43" r="1.6" fill="#1e3a5f" />
+      <circle cx="86" cy="43" r="3.2" fill="#ffffff" stroke="#1e3a5f" strokeWidth="1.5" />
+      <circle cx="85" cy="43" r="1.6" fill="#1e3a5f" />
       <path
-        d="M73 45 Q77 42 80 44 Q83 42 87 45 Q80 49 73 45 Z"
+        d="M74 49 Q77 47 80 48 Q83 47 86 49 Q80 52 74 49 Z"
         fill="#ff8fab"
         stroke="#1e3a5f"
-        strokeWidth="2"
+        strokeWidth="1.5"
       />
     </svg>
+  );
+};
+
+export const HangyudonSailorCap: React.FC<{
+  size?: number;
+  className?: string;
+}> = ({ size = 140, className = '' }) => {
+  return (
+    <svg
+      width={size}
+      height={size * 0.65}
+      viewBox="0 0 140 90"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
+      {/* Sailor Hat Crown (Crisp white dome) */}
+      <path
+        d="M25 65 C20 30, 120 30, 115 65 Z"
+        fill="#ffffff"
+        stroke="#1e3a5f"
+        strokeWidth="3.5"
+      />
+      {/* Navy Ribbon Band */}
+      <path
+        d="M20 62 C20 62, 70 56, 120 62 L120 74 C120 74, 70 68, 20 74 Z"
+        fill="#1e3a5f"
+      />
+      {/* Golden anchor badge */}
+      <circle cx="70" cy="65" r="7" fill="#fde047" stroke="#ca8a04" strokeWidth="1.5" />
+      <path d="M70 60 L70 70 M66 66 C66 70, 74 70, 74 66" stroke="#854d0e" strokeWidth="1.5" strokeLinecap="round" />
+      {/* Trailing navy ribbons */}
+      <path d="M115 68 C125 75, 130 85, 134 88" stroke="#1e3a5f" strokeWidth="4" strokeLinecap="round" />
+      <path d="M117 72 C125 78, 128 88, 130 90" stroke="#0284c7" strokeWidth="3" strokeLinecap="round" />
+    </svg>
+  );
+};
+
+export const KawaiiBlushSparkles: React.FC<{
+  width?: number;
+  height?: number;
+}> = ({ width = 300, height = 150 }) => {
+  return (
+    <div
+      style={{ width, height }}
+      className="relative flex items-center justify-between pointer-events-none select-none px-2"
+    >
+      {/* Left Cheek Blush */}
+      <div className="relative flex items-center justify-center">
+        <div className="w-14 h-7 bg-rose-400/40 rounded-full blur-[2px] transform -rotate-6" />
+        <div className="absolute -top-2 -right-1 text-yellow-300 animate-pulse text-xs">✦</div>
+        <div className="absolute -bottom-1 -left-1 text-teal-300 text-[10px]">★</div>
+      </div>
+
+      {/* Right Cheek Blush */}
+      <div className="relative flex items-center justify-center">
+        <div className="w-14 h-7 bg-rose-400/40 rounded-full blur-[2px] transform rotate-6" />
+        <div className="absolute -top-2 -left-1 text-yellow-300 animate-pulse text-xs">✦</div>
+        <div className="absolute -bottom-1 -right-1 text-teal-300 text-[10px]">★</div>
+      </div>
+    </div>
+  );
+};
+
+export const CornerBuddies: React.FC = () => {
+  return (
+    <div className="absolute inset-0 pointer-events-none z-20 flex justify-between items-end p-3">
+      {/* Bottom Left Waving Hangyudon */}
+      <div className="flex flex-col items-center animate-bounce-gentle transform -rotate-6 drop-shadow-md">
+        <HangyudonCharacter size={76} mood="happy" />
+        <span className="bg-teal-900/90 text-teal-200 text-[10px] font-bold px-2 py-0.5 rounded-full border border-teal-500/40 mt-1">
+          Say Cheese!
+        </span>
+      </div>
+
+      {/* Bottom Right Cheering Sayuri */}
+      <div className="flex flex-col items-center animate-bounce transform rotate-6 drop-shadow-md">
+        <SayuriOctopus size={56} />
+        <span className="bg-rose-950/90 text-rose-200 text-[10px] font-bold px-2 py-0.5 rounded-full border border-rose-500/40 mt-1">
+          Kawaii!
+        </span>
+      </div>
+    </div>
   );
 };
 

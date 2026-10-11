@@ -74,19 +74,34 @@ describe('Photobooth', () => {
     expect(screen.getByTitle(/Unmute Sound/i)).toBeInTheDocument();
   });
 
-  it('allows selecting a Hangyudon face filter', async () => {
+  it('allows selecting a Hangyudon face filter prop', async () => {
     await act(async () => {
       render(<Photobooth />);
     });
 
-    const fullMaskBtn = screen.getByRole('button', { name: /Full Face Mask/i });
-    expect(fullMaskBtn).toBeInTheDocument();
+    const headbandBtn = screen.getByRole('button', { name: /Hangyudon Headband/i });
+    expect(headbandBtn).toBeInTheDocument();
 
     await act(async () => {
-      fireEvent.click(fullMaskBtn);
+      fireEvent.click(headbandBtn);
     });
 
-    expect(fullMaskBtn).toHaveClass('border-teal-400');
+    expect(headbandBtn).toHaveClass('border-teal-400');
+  });
+
+  it('allows toggling ambient floating bubbles on and off', async () => {
+    await act(async () => {
+      render(<Photobooth />);
+    });
+
+    const bubblesToggle = screen.getByRole('button', { name: /Bubbles: On|Bubbles: Off/i });
+    expect(bubblesToggle).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(bubblesToggle);
+    });
+
+    expect(screen.getByRole('button', { name: /Bubbles: Off/i })).toBeInTheDocument();
   });
 
   it('does not render floating bubbles or face tracking badge when camera is off', async () => {
@@ -97,7 +112,7 @@ describe('Photobooth', () => {
     });
 
     // When camera is off, interactive background canvas should not be present
-    const interactiveCanvas = renderedContainer!.querySelector('canvas[title*="bubbles"]');
+    const interactiveCanvas = renderedContainer!.querySelector('canvas');
     expect(interactiveCanvas).toBeNull();
 
     // Face tracking badge should not be present

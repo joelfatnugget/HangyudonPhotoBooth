@@ -84,8 +84,20 @@ export class FrameCompositor {
     }
 
     // 4. Tracked Face AR Filter Layer
-    if (face && faceFilter !== 'none') {
-      this.drawFaceFilter(ctx, face, faceFilter, tracker);
+    if (faceFilter !== 'none') {
+      const mappedFace =
+        face && video && video.videoWidth > 0
+          ? tracker.mapFaceToContainer({
+              face,
+              videoWidth: video.videoWidth,
+              videoHeight: video.videoHeight,
+              containerWidth: width,
+              containerHeight: height,
+              isMirrored,
+            })
+          : face;
+
+      this.drawFaceFilter(ctx, mappedFace, faceFilter, tracker, width, height);
     }
 
     // 5. Placed Stickers Layer
@@ -98,217 +110,193 @@ export class FrameCompositor {
 
   private drawFaceFilter(
     ctx: CanvasRenderingContext2D,
-    face: DetectedFace,
+    face: DetectedFace | null,
     filter: HangyudonFaceFilter,
-    tracker: FaceTrackerEngine
+    tracker: FaceTrackerEngine,
+    containerWidth: number,
+    containerHeight: number
   ): void {
     ctx.save();
+
+    if (filter === 'corner_buddies') {
+      // Bottom-left Hangyudon
+      ctx.save();
+      ctx.translate(50, containerHeight - 50);
+      ctx.fillStyle = '#4ecdc4';
+      ctx.strokeStyle = '#1e3a5f';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(0, 0, 26, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      // Eyes
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(-8, -4, 6, 0, Math.PI * 2);
+      ctx.arc(8, -4, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#1e3a5f';
+      ctx.beginPath();
+      ctx.arc(-7, -4, 3, 0, Math.PI * 2);
+      ctx.arc(9, -4, 3, 0, Math.PI * 2);
+      ctx.fill();
+      // Lips
+      ctx.fillStyle = '#ff8fab';
+      ctx.beginPath();
+      ctx.ellipse(0, 8, 10, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+
+      // Bottom-right Sayuri
+      ctx.save();
+      ctx.translate(containerWidth - 50, containerHeight - 45);
+      ctx.fillStyle = '#fb7185';
+      ctx.strokeStyle = '#1e3a5f';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(0, 0, 22, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      // Bow
+      ctx.fillStyle = '#fde047';
+      ctx.beginPath();
+      ctx.arc(14, -14, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      // Eyes
+      ctx.fillStyle = '#1e3a5f';
+      ctx.beginPath();
+      ctx.arc(-6, -2, 2.5, 0, Math.PI * 2);
+      ctx.arc(6, -2, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      ctx.restore();
+      return;
+    }
+
+    if (!face) {
+      ctx.restore();
+      return;
+    }
 
     if (filter === 'hood_headband') {
       const anchor = tracker.calculateAnchor(face, 'headTop');
       ctx.translate(anchor.x, anchor.y);
       ctx.rotate((anchor.rotation * Math.PI) / 180);
 
-      // Headband arch
+      // Headband gentle arch resting on hair line
       ctx.strokeStyle = '#4ecdc4';
-      ctx.lineWidth = anchor.width * 0.12;
+      ctx.lineWidth = anchor.width * 0.08;
       ctx.lineCap = 'round';
       ctx.beginPath();
-      ctx.arc(0, 15, anchor.width * 0.42, Math.PI, 0, false);
+      ctx.arc(0, 8, anchor.width * 0.44, Math.PI * 0.95, Math.PI * 0.05, true);
       ctx.stroke();
 
       ctx.strokeStyle = '#1e3a5f';
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 2.5;
       ctx.stroke();
 
       // Top dorsal fin
       ctx.fillStyle = '#38b2ac';
       ctx.strokeStyle = '#1e3a5f';
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 2.5;
       ctx.beginPath();
-      ctx.ellipse(0, -anchor.width * 0.38, anchor.width * 0.12, anchor.width * 0.22, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, -anchor.width * 0.22, anchor.width * 0.1, anchor.width * 0.18, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
 
       // Mini Hangyudon head badge in center of headband
       ctx.fillStyle = '#4ecdc4';
       ctx.beginPath();
-      ctx.arc(0, -5, anchor.width * 0.14, 0, Math.PI * 2);
+      ctx.arc(0, -2, anchor.width * 0.1, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
 
       // Eyes on badge
       ctx.fillStyle = '#ffffff';
       ctx.beginPath();
-      ctx.arc(-anchor.width * 0.05, -7, anchor.width * 0.035, 0, Math.PI * 2);
-      ctx.arc(anchor.width * 0.05, -7, anchor.width * 0.035, 0, Math.PI * 2);
+      ctx.arc(-anchor.width * 0.035, -4, anchor.width * 0.024, 0, Math.PI * 2);
+      ctx.arc(anchor.width * 0.035, -4, anchor.width * 0.024, 0, Math.PI * 2);
       ctx.fill();
-    } else if (filter === 'full_mask') {
-      const anchor = tracker.calculateAnchor(face, 'faceCenter');
-      ctx.translate(anchor.x, anchor.y);
-      ctx.rotate((anchor.rotation * Math.PI) / 180);
-
-      // Dorsal fin on mask
-      ctx.fillStyle = '#38b2ac';
-      ctx.strokeStyle = '#1e3a5f';
-      ctx.lineWidth = 3.5;
-      ctx.beginPath();
-      ctx.ellipse(0, -anchor.height * 0.5, anchor.width * 0.15, anchor.height * 0.22, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-
-      // Main face
-      ctx.fillStyle = '#4ecdc4';
-      ctx.beginPath();
-      ctx.ellipse(0, 0, anchor.width * 0.48, anchor.height * 0.48, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-
-      // Yellow tummy
-      ctx.fillStyle = '#fef08a';
-      ctx.beginPath();
-      ctx.ellipse(0, anchor.height * 0.2, anchor.width * 0.26, anchor.height * 0.18, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-
-      // Big round eyes
-      const eyeR = anchor.width * 0.13;
-      [-anchor.width * 0.18, anchor.width * 0.18].forEach((xOff) => {
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.arc(xOff, -anchor.height * 0.1, eyeR, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-        ctx.fillStyle = '#1e3a5f';
-        ctx.beginPath();
-        ctx.arc(xOff + 1, -anchor.height * 0.1, eyeR * 0.52, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.arc(xOff + 3, -anchor.height * 0.1 - eyeR * 0.2, eyeR * 0.2, 0, Math.PI * 2);
-        ctx.fill();
-      });
-
-      // Wavy salmon lips
-      ctx.fillStyle = '#ff8fab';
-      ctx.beginPath();
-      ctx.ellipse(0, anchor.height * 0.05, anchor.width * 0.18, anchor.height * 0.09, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
     } else if (filter === 'sayuri_head') {
       const anchor = tracker.calculateAnchor(face, 'headTop');
-      ctx.translate(anchor.x, anchor.y - anchor.height * 0.5);
+      ctx.translate(anchor.x, anchor.y - anchor.height * 0.25);
       ctx.rotate((anchor.rotation * Math.PI) / 180);
 
       // Sayuri head
       ctx.fillStyle = '#fb7185';
       ctx.strokeStyle = '#1e3a5f';
-      ctx.lineWidth = 3.5;
+      ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.arc(0, 0, anchor.width * 0.26, 0, Math.PI * 2);
+      ctx.arc(0, 0, anchor.width * 0.22, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
 
       // Yellow hair bow
       ctx.fillStyle = '#fde047';
       ctx.beginPath();
-      ctx.arc(anchor.width * 0.16, -anchor.width * 0.18, 8, 0, Math.PI * 2);
+      ctx.arc(anchor.width * 0.14, -anchor.width * 0.14, 6, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
 
       // Cute eyes & mouth
       ctx.fillStyle = '#1e3a5f';
       ctx.beginPath();
-      ctx.arc(-8, -2, 3, 0, Math.PI * 2);
-      ctx.arc(8, -2, 3, 0, Math.PI * 2);
+      ctx.arc(-6, -2, 2.5, 0, Math.PI * 2);
+      ctx.arc(6, -2, 2.5, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = '#881337';
+    } else if (filter === 'blush_sparkles') {
+      const leftAnchor = tracker.calculateAnchor(face, 'blushLeft');
+      const rightAnchor = tracker.calculateAnchor(face, 'blushRight');
+
+      // Left cheek blush
+      ctx.save();
+      ctx.fillStyle = 'rgba(251, 113, 133, 0.45)';
       ctx.beginPath();
-      ctx.arc(0, 6, 3.5, 0, Math.PI * 2);
+      ctx.ellipse(leftAnchor.x, leftAnchor.y, leftAnchor.width * 0.5, leftAnchor.height * 0.5, -0.1, 0, Math.PI * 2);
       ctx.fill();
-    } else if (filter === 'wavy_lips') {
-      const anchor = tracker.calculateAnchor(face, 'mouth');
+      // Gold twinkle
+      ctx.fillStyle = '#fde047';
+      ctx.font = 'bold 12px sans-serif';
+      ctx.fillText('✦', leftAnchor.x + 8, leftAnchor.y - 6);
+      ctx.restore();
+
+      // Right cheek blush
+      ctx.save();
+      ctx.fillStyle = 'rgba(251, 113, 133, 0.45)';
+      ctx.beginPath();
+      ctx.ellipse(rightAnchor.x, rightAnchor.y, rightAnchor.width * 0.5, rightAnchor.height * 0.5, 0.1, 0, Math.PI * 2);
+      ctx.fill();
+      // Gold twinkle
+      ctx.fillStyle = '#fde047';
+      ctx.font = 'bold 12px sans-serif';
+      ctx.fillText('✦', rightAnchor.x - 14, rightAnchor.y - 6);
+      ctx.restore();
+    } else if (filter === 'sailor_beret') {
+      const anchor = tracker.calculateAnchor(face, 'sailorTop');
       ctx.translate(anchor.x, anchor.y);
       ctx.rotate((anchor.rotation * Math.PI) / 180);
 
-      ctx.fillStyle = '#ff8fab';
-      ctx.strokeStyle = '#1e3a5f';
-      ctx.lineWidth = 3.5;
-      ctx.beginPath();
-      ctx.ellipse(0, 0, anchor.width * 0.48, anchor.width * 0.24, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-      ctx.strokeStyle = '#e11d48';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(-anchor.width * 0.3, 0);
-      ctx.lineTo(anchor.width * 0.3, 0);
-      ctx.stroke();
-    } else if (filter === 'big_eyes') {
-      const anchor = tracker.calculateAnchor(face, 'eyes');
-      ctx.translate(anchor.x, anchor.y);
-      ctx.rotate((anchor.rotation * Math.PI) / 180);
-
-      const eyeR = anchor.width * 0.19;
-      const eyeSpacing = anchor.width * 0.32;
-      [-eyeSpacing, eyeSpacing].forEach((xOff) => {
-        ctx.fillStyle = '#ffffff';
-        ctx.strokeStyle = '#1e3a5f';
-        ctx.lineWidth = 3.5;
-        ctx.beginPath();
-        ctx.arc(xOff, 0, eyeR, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-        ctx.fillStyle = '#1e3a5f';
-        ctx.beginPath();
-        ctx.arc(xOff + 1, 0, eyeR * 0.52, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.arc(xOff + 3, -eyeR * 0.22, eyeR * 0.2, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = 'rgba(251, 113, 133, 0.45)';
-        ctx.beginPath();
-        ctx.ellipse(xOff, eyeR * 1.35, eyeR * 0.75, eyeR * 0.35, 0, 0, Math.PI * 2);
-        ctx.fill();
-      });
-    } else if (filter === 'ramen_feeder') {
-      const anchor = tracker.calculateAnchor(face, 'chin');
-      ctx.translate(anchor.x, anchor.y);
-      ctx.rotate((anchor.rotation * Math.PI) / 180);
-
-      // Steam lines
-      ctx.strokeStyle = '#94a3b8';
-      ctx.lineWidth = 2.5;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(-15, -12);
-      ctx.lineTo(-10, -28);
-      ctx.moveTo(10, -12);
-      ctx.lineTo(15, -28);
-      ctx.stroke();
-
-      // Ramen bowl
-      ctx.fillStyle = '#ef4444';
-      ctx.strokeStyle = '#1e3a5f';
-      ctx.lineWidth = 3.5;
-      ctx.beginPath();
-      ctx.arc(0, 0, anchor.width * 0.38, 0, Math.PI);
-      ctx.fill();
-      ctx.stroke();
-
-      // Noodles
-      ctx.fillStyle = '#fef08a';
-      ctx.fillRect(-anchor.width * 0.32, -anchor.width * 0.08, anchor.width * 0.64, anchor.width * 0.12);
-      ctx.strokeRect(-anchor.width * 0.32, -anchor.width * 0.08, anchor.width * 0.64, anchor.width * 0.12);
-
-      // Naruto whirlpool fishcake
+      // White dome
       ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = '#1e3a5f';
+      ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.arc(0, -anchor.width * 0.02, 7, 0, Math.PI * 2);
+      ctx.ellipse(0, -anchor.height * 0.3, anchor.width * 0.42, anchor.height * 0.35, 0, Math.PI, 0, true);
       ctx.fill();
-      ctx.strokeStyle = '#ec4899';
       ctx.stroke();
+
+      // Navy band
+      ctx.fillStyle = '#1e3a5f';
+      ctx.fillRect(-anchor.width * 0.4, -anchor.height * 0.3, anchor.width * 0.8, anchor.height * 0.14);
+
+      // Gold badge
+      ctx.fillStyle = '#fde047';
+      ctx.beginPath();
+      ctx.arc(0, -anchor.height * 0.23, 5, 0, Math.PI * 2);
+      ctx.fill();
     }
 
     ctx.restore();

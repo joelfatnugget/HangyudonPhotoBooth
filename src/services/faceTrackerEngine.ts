@@ -4,9 +4,23 @@ export interface DetectedFace {
   width: number;
   height: number;
   rollAngle: number; // degrees
+  normalized?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
 }
 
-export type FaceAnchorType = 'headTop' | 'faceCenter' | 'mouth' | 'eyes' | 'chin';
+export type FaceAnchorType =
+  | 'headTop'
+  | 'faceCenter'
+  | 'mouth'
+  | 'eyes'
+  | 'chin'
+  | 'blushLeft'
+  | 'blushRight'
+  | 'sailorTop';
 
 export interface AnchorResult {
   x: number;
@@ -23,12 +37,20 @@ export interface FaceTrackerOptions {
 
 export type HangyudonFaceFilter =
   | 'none'
-  | 'full_mask'
   | 'hood_headband'
   | 'sayuri_head'
-  | 'wavy_lips'
-  | 'big_eyes'
-  | 'ramen_feeder';
+  | 'blush_sparkles'
+  | 'sailor_beret'
+  | 'corner_buddies';
+
+export interface MapFaceParams {
+  face: DetectedFace;
+  videoWidth: number;
+  videoHeight: number;
+  containerWidth: number;
+  containerHeight: number;
+  isMirrored?: boolean;
+}
 
 export class FaceTrackerEngine {
   private smoothingAlpha: number;
@@ -57,12 +79,23 @@ export class FaceTrackerEngine {
 
   public smoothFace(newFace: DetectedFace, previousFace: DetectedFace): DetectedFace {
     const a = this.smoothingAlpha;
+    const norm =
+      newFace.normalized && previousFace.normalized
+        ? {
+            x: previousFace.normalized.x + (newFace.normalized.x - previousFace.normalized.x) * a,
+            y: previousFace.normalized.y + (newFace.normalized.y - previousFace.normalized.y) * a,
+            width: previousFace.normalized.width + (newFace.normalized.width - previousFace.normalized.width) * a,
+            height: previousFace.normalized.height + (newFace.normalized.height - previousFace.normalized.height) * a,
+          }
+        : newFace.normalized ?? previousFace.normalized;
+
     return {
       x: previousFace.x + (newFace.x - previousFace.x) * a,
       y: previousFace.y + (newFace.y - previousFace.y) * a,
       width: previousFace.width + (newFace.width - previousFace.width) * a,
       height: previousFace.height + (newFace.height - previousFace.height) * a,
       rollAngle: previousFace.rollAngle + (newFace.rollAngle - previousFace.rollAngle) * a,
+      normalized: norm,
     };
   }
 
@@ -85,6 +118,57 @@ export class FaceTrackerEngine {
     return null;
   }
 
+  public mapFaceToContainer(params: MapFaceParams): DetectedFace {
+    const { face, videoWidth, videoHeight, containerWidth, containerHeight, isMirrored = false } = params;
+    if (!videoWidth || !videoHeight || !containerWidth || !containerHeight) {
+      return face;
+    }
+
+    const videoAspect = videoWidth / videoHeight;
+    const containerAspect = containerWidth / containerHeight;
+    let renderW: number;
+    let renderH: number;
+    let offX: number;
+    let offY: number;
+
+    if (videoAspect > containerAspect) {
+      renderH = containerHeight;
+      renderW = containerHeight * videoAspect;
+      offX = (containerWidth - renderW) / 2;
+      offY = 0;
+    } else {
+      renderW = containerWidth;
+      renderH = containerWidth / videoAspect;
+      offX = 0;
+      offY = (containerHeight - renderH) / 2;
+    }
+
+    const norm = face.normalized || {
+      x: face.x / videoWidth,
+      y: face.y / videoHeight,
+      width: face.width / videoWidth,
+      height: face.height / videoHeight,
+    };
+
+    const faceW = norm.width * renderW;
+    const faceH = norm.height * renderH;
+    let faceX = offX + norm.x * renderW;
+    const faceY = offY + norm.y * renderH;
+
+    if (isMirrored) {
+      faceX = containerWidth - (faceX + faceW);
+    }
+
+    return {
+      x: faceX,
+      y: faceY,
+      width: faceW,
+      height: faceH,
+      rollAngle: isMirrored ? -face.rollAngle : face.rollAngle,
+      normalized: norm,
+    };
+  }
+
   public calculateAnchor(face: DetectedFace, anchorType: FaceAnchorType): AnchorResult {
     const centerX = face.x + face.width / 2;
     const centerY = face.y + face.height / 2;
@@ -94,18 +178,42 @@ export class FaceTrackerEngine {
       case 'headTop':
         return {
           x: centerX,
-          y: face.y - face.height * 0.12,
-          width: face.width * 1.15,
-          height: face.height * 0.7,
+          y: face.y - face.height * 0.16,
+          width: face.width * 0.95,
+          height: face.height * 0.55,
           rotation,
         };
       case 'faceCenter':
         return {
           x: centerX,
           y: centerY,
-          width: face.width * 1.25,
-          height: face.height * 1.25,
+          width: face.width * 1.1,
+          height: face.height * 1.1,
           rotation,
+        };
+      case 'blushLeft':
+        return {
+          x: face.x + face.width * 0.22,
+          y: face.y + face.height * 0.58,
+          width: face.width * 0.24,
+          height: face.height * 0.16,
+          rotation,
+        };
+      case 'blushRight':
+        return {
+          x: face.x + face.width * 0.78,
+          y: face.y + face.height * 0.58,
+          width: face.width * 0.24,
+          height: face.height * 0.16,
+          rotation,
+        };
+      case 'sailorTop':
+        return {
+          x: centerX + face.width * 0.08,
+          y: face.y - face.height * 0.18,
+          width: face.width * 0.65,
+          height: face.height * 0.45,
+          rotation: rotation + 6,
         };
       case 'eyes':
         return {
@@ -161,12 +269,20 @@ export class FaceTrackerEngine {
               roll = (Math.atan2(dy, dx) * 180) / Math.PI;
             }
           }
+          const srcW = source instanceof HTMLVideoElement ? source.videoWidth : source.width;
+          const srcH = source instanceof HTMLVideoElement ? source.videoHeight : source.height;
           return {
             x: bb.x,
             y: bb.y,
             width: bb.width,
             height: bb.height,
             rollAngle: roll,
+            normalized: {
+              x: srcW > 0 ? bb.x / srcW : 0,
+              y: srcH > 0 ? bb.y / srcH : 0,
+              width: srcW > 0 ? bb.width / srcW : 0,
+              height: srcH > 0 ? bb.height / srcH : 0,
+            },
           };
         }
       } catch {
@@ -252,12 +368,21 @@ export class FaceTrackerEngine {
       const normW = Math.max(0.2, Math.min(0.65, (maxX - minX) / downW * 1.1));
       const normH = normW * 1.25;
 
+      const normX = normCenterX - normW / 2;
+      const normY = normCenterY - normH / 2;
+
       return {
-        x: (normCenterX - normW / 2) * w,
-        y: (normCenterY - normH / 2) * h,
+        x: normX * w,
+        y: normY * h,
         width: normW * w,
         height: normH * h,
         rollAngle: 0,
+        normalized: {
+          x: normX,
+          y: normY,
+          width: normW,
+          height: normH,
+        },
       };
     } catch {
       return null;
